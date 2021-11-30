@@ -1,5 +1,5 @@
-extern crate kafka;
 extern crate env_logger;
+extern crate kafka;
 
 use kafka::consumer::{Consumer, FetchOffset, GroupOffsetStorage};
 use kafka::error::Error as KafkaError;
@@ -12,7 +12,7 @@ fn main() {
     env_logger::init();
 
     let broker = "localhost:9092".to_owned();
-    let topic = "my-topic".to_owned();
+    let topic = "kafka-rust-test2".to_owned();
     let group = "my-group".to_owned();
 
     if let Err(e) = consume_messages(group, topic, vec![broker]) {
@@ -22,22 +22,33 @@ fn main() {
 
 fn consume_messages(group: String, topic: String, brokers: Vec<String>) -> Result<(), KafkaError> {
     let mut con = Consumer::from_hosts(brokers)
-            .with_topic(topic)
-            .with_group(group)
-            .with_fallback_offset(FetchOffset::Earliest)
-            .with_offset_storage(GroupOffsetStorage::Kafka)
-            .create().unwrap();
+        .with_topic(topic)
+        .with_group(group)
+        .with_fallback_offset(FetchOffset::Earliest)
+        .with_offset_storage(GroupOffsetStorage::Kafka)
+        .create()
+        .unwrap();
 
     loop {
         let mss = con.poll()?;
         if mss.is_empty() {
-            println!("No messages available right now.");
-            return Ok(());
+            //println!("No messages available right now.");
+            //return Ok(());
         }
 
         for ms in mss.iter() {
             for m in ms.messages() {
-                println!("{}:{}@{}: {:?}", ms.topic(), ms.partition(), m.offset, m.value);
+                println!(
+                    "{}:{}@{}: {:?}, {:?}",
+                    ms.topic(),
+                    ms.partition(),
+                    m.offset,
+                    m.value,
+                    String::from_utf8_lossy(m.value)
+                );
+
+                let val_str = String::from_utf8_lossy(m.value);
+                println!("Length:({}): {}", val_str.len(), val_str);
             }
             let _ = con.consume_messageset(ms);
         }
